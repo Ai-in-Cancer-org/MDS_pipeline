@@ -1,11 +1,11 @@
-import os, time, torch
+import os, torch
 import pandas as pd
 from PIL import Image
 from torchsampler import ImbalancedDatasetSampler
-import torchvision.transforms as transforms
-import mlflow
-import tempfile
+import mlflow, tempfile
+
 from utils_mlflow import retry
+from augmentations import get_train_transforms, get_val_transforms
 
 class CSVDataset(object):
     def __init__(self, root, path_to_csv, transforms, dataset_type='binary', class_names=[]):
@@ -24,20 +24,15 @@ class CSVDataset(object):
 
     def __getitem__(self, idx):
         img_path = os.path.join(self.root, self.imgs[idx])
-        img = Image.open(img_path)
+        img = Image.open(img_path).convert("RGB")
         target = self.labels[idx]
-        if self.transforms is not None:
+        if self.transforms:
             img = self.transforms(img)
         return img, target
 
     def __len__(self):
         return len(self.imgs)
 
-class ConvertToRGB:
-    def __call__(self, img):
-        if img.mode == 'RGBA':
-            img = img.convert('RGB')
-        return img
 
 def log_data_split(args, indices, splitpoint, cv_str=""):
     df = pd.read_csv(args.data_path)
@@ -49,6 +44,7 @@ def log_data_split(args, indices, splitpoint, cv_str=""):
         mlflow.log_artifacts(tmpdirname, artifact_path=f"{cv_str}data")
         mlflow.log_artifact(args.data_path, artifact_path=f"{cv_str}data")
 
+
 def output_dir(args, cv):
     return args.output_dir+'/'+args.run_name+'/'+str(cv)
 
@@ -59,34 +55,30 @@ def cv_str(cv):
     return f"cv{cv}_"
 
 def load_data(args, cv):
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
+    print("Loading train/val datasets...")
 
-    dataset_train = CSVDataset(
-        args.imgs_path,
-        data_paths(args, cv)[0],
-        transforms.Compose([
-            ConvertToRGB(),
-            transforms.RandomResizedCrop(tuple(args.input_size)),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            normalize]),
-        args.dataset_type,
-        args.class_names)
+    train_transforms = get_train_transforms(
+        tuple(args.input_size),
+        random_crop_scale=args.random_crop_scale,
+        color_jitter_params=args.color_jitter,
+        affine_degrees=args.affine_degrees,
+        affine_translate=args.affine_translate,
+        affine_scale=args.affine_scale,
+        affine_shear=args.affine_shear
+    )
+    val_transforms = get_val_transforms(tuple(args.input_size))
 
-    dataset_test = CSVDataset(
-        args.imgs_path,
-        data_paths(args, cv)[1],
-        transforms.Compose([
-            ConvertToRGB(),
-            transforms.Resize(tuple(args.input_size)),
-            transforms.ToTensor(),
-            normalize]),
-        args.dataset_type,
-        args.class_names)
+    dataset_train = CSVDataset(args.imgs_path, data_paths(args, cv)[0],
+                               transforms=train_transforms,
+                               dataset_type=args.dataset_type,
+                               class_names=args.class_names)
+
+    dataset_test = CSVDataset(args.imgs_path, data_paths(args, cv)[1],
+                              transforms=val_transforms,
+                              dataset_type=args.dataset_type,
+                              class_names=args.class_names)
 
     class_names = dataset_train.classes
-
     splitpoint = int(len(dataset_train)*(1-args.test_split))
     indices = torch.randperm(len(dataset_train)).tolist()
 

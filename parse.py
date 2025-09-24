@@ -43,5 +43,13 @@ def parse_args():
     parser.add_argument('--cv-start', dest="cv_start", default=0, type=int)
     parser.add_argument("--user_attr", dest="user_attr", action=StoreDictKeyPair, default={})
     parser.add_argument("--system_attr", dest="system_attr", action=StoreDictKeyPair, default={})
+    parser.add_argument('--random-crop-scale', type=float, nargs=2, default=[0.8, 1.0], help='scale range for RandomResizedCrop (min max)')
+    parser.add_argument('--color-jitter', type=float, nargs=4, default=[0.2, 0.2, 0.2, 0.1], help='Color jitter params (brightness contrast saturation hue)')
+    parser.add_argument('--affine-degrees', type=float, default=15, help='Max rotation for RandomAffine')
+    parser.add_argument('--affine-translate', type=float, nargs=2, default=[0.1, 0.1], help='Translation fraction (h, w)')
+    parser.add_argument('--affine-scale', type=float, nargs=2, default=[0.9, 1.1], help='Scaling range')
+    parser.add_argument('--affine-shear', type=float, default=10, help='Shear angle')
+    
+    
     args = parser.parse_args()
     return args
