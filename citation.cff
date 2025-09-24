@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite it as below."
+authors:
+  - family-names: "Srivastava"
+    given-names: "Ishan"
+title: "MDS_Pipeline"
+version: "1.0.0"
+date-released: 2025-09-24
+license: "CC-BY-4.0"
+repository-code: "https://github.com/Ai-in-Cancer-org/MDS_pipeline"
+preferred-citation:
+  type: article
+  title: "Image-based Explainable Artificial Intelligence Accurately Identifies Myelodysplastic Neoplasms Beyond Conventional Signs of Dysplasia"
+  authors:
+    - family-names: "Srivastava"
+      given-names: "Ishan"
+  year: 2025
